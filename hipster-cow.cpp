@@ -5,11 +5,15 @@
 #include <cstring>
 #include <vector>
 
-#define REF_GENOME_IN "ref_genome.txt" // The file with the reference genome
-#define READ_TARGET "read_target.txt" // The file with the reads
+#define REF_GENOME_IN "ref_genome.txt" // Path of file with the reference genome
+#define READ_TARGET "read_target.txt" // Path of file with the reads
 
 using namespace std;
 
+
+// **Inputs the reference genome into a string
+//   PARAM:  string passed by reference (returned)
+//   RETVAL: integer which returns 1 when successful, 0 otherwise
 int input_ref_genome (string *buff) {
 	string line;
 	ifstream infile_ref_genome (REF_GENOME_IN);
@@ -26,6 +30,10 @@ int input_ref_genome (string *buff) {
 	return 0;
 }
 
+
+// **Inputs the target reads into a string vector
+//   PARAM:  string vector passed by reference (returned with reads)
+//   RETVAL: number of reads (i.e. size of vector reads)
 int input_target_reads (vector<string>& reads) {
 
 	
@@ -47,6 +55,8 @@ int input_target_reads (vector<string>& reads) {
 	return -1;
 }
 
+
+// **Main function
 int main (int argc, char *argv[]) {
 	string refGenome;
 	if(!input_ref_genome(&refGenome))
