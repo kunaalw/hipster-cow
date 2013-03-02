@@ -18,5 +18,13 @@
     <ClCompile Include="hipster-cow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="reference_STR_tree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="reference_STR_tree.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

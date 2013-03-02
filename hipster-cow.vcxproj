@@ -88,6 +88,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="hipster-cow.cpp" />
+    <ClCompile Include="reference_STR_tree.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="reference_STR_tree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

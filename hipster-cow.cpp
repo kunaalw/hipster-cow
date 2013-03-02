@@ -9,6 +9,7 @@
 #include <bitset>
 #include <stdio.h>
 #include <thread>
+#include "reference_STR_tree.h"
 
 #define REF_GENOME_IN "ref_genome.txt" // Path of file with the reference genome
 #define READ_TARGET "read_target.txt" // Path of file with the reads
@@ -17,7 +18,18 @@
 
 using namespace std;
 
+
 typedef bitset<NUM_CHROM_TIMES_TWO> genome;
+
+typedef struct STRInstance {
+    int startPos;
+	int endPos;
+	string pattern;
+	int lengthPattern;
+} standrepinst;
+
+typedef vector<standrepinst> standrep;
+
 
 // **Inputs the reference genome into a string
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
@@ -32,8 +44,6 @@ int input_ref_genome (genome & reference_genome) {
         return -1; //could not open file
 
     while ((c = fgetc(file)) != EOF) {
-		cout << "checkpoint 1" << endl;
-		cout << "char c is " << c << endl;
 		if (c == 'A') {
 			reference_genome.set(n++,0);
 			reference_genome.set(n++,0);
@@ -63,8 +73,6 @@ int input_ref_genome (genome & reference_genome) {
 //   PARAM:  string vector passed by reference (returned with reads)
 //   RETVAL: number of reads (i.e. size of vector reads)
 int input_target_reads (vector<string>& reads) {
-
-	
 	int numReads = 0;
 	string line;
 	ifstream myfile (READ_TARGET);
@@ -82,28 +90,59 @@ int input_target_reads (vector<string>& reads) {
 	return -1;
 }
 
-//int find_repeats_thread_fun(
+int find_repeats_thread_fun_num_lim(genome & reference_genome, int first, int last, int n) {
+	return 0;
+}
+
+
+
+int find_repeats_thread_fun(genome & reference_genome, int first, int last) {
+
+	vector<thread *> threadList;
+
+	for (int i = 2; i <= 5 ; ++i)
+		threadList.push_back(new thread(find_repeats_thread_fun_num_lim, reference_genome, first, last, i));
+	
+	for (int j = 2; j <= 5; ++j) {
+		//threadList[j]->join();
+		//delete threadList[j];
+	}
+
+	return 0;
+}
 
 
 // **What does this function do? (TODO)
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
 //   RETVAL: Fill this in later (TODO)
-int find_repeats (genome & reference_genome) {
+int find_repeats (genome & reference_genome, int sizeRef) {
 	vector<thread *> threadList;
-	for (int i = 0; i < NUM_THREADS; ++i)
-    //threadList.push_back(new thread(workerFunc));
+	int sizeThreadGenome = ceil(sizeRef/NUM_THREADS);
+	int lastInThread = -1;
+	int firstInThread = -1;
 
-  for (int j = 0; j < NUM_THREADS; ++j)
-  {
-      threadList[j]->join();
-      delete threadList[j];
-  }
+	for (int i = 0; i < NUM_THREADS; ++i) {
+		firstInThread = i*sizeThreadGenome;
+		
+		if (i == (NUM_THREADS-1))
+			lastInThread = sizeRef-1;
+		
+		else lastInThread = (i+1)*sizeThreadGenome-1;
+
+		threadList.push_back(new thread(find_repeats_thread_fun, reference_genome, firstInThread, lastInThread));
+	}
+	
+	for (int j = 0; j < NUM_THREADS; ++j) {
+		threadList[j]->join();
+		delete threadList[j];
+	}
 	return 0;
 }
 
 
 // **Main function
 int main (int argc, char *argv[]) {
+
 	genome refGenome;
 	int sizeRef = 0;
 	if(!(sizeRef = input_ref_genome(refGenome)))
@@ -111,14 +150,25 @@ int main (int argc, char *argv[]) {
 	
 	vector<string> retReads;
 	input_target_reads (retReads);
-	cout << "sizeRef is: " <<sizeRef << endl;
-	cout << "The reference genome is " << endl;
-	for (int i = 0; i < sizeRef; i++)
-	{
-		cout << refGenome[i];
-	}
-	cout << "First line is " << retReads[0] << endl;
-	cout << "Third line is " << retReads[2] << endl;
+	cout << "Size of genome is: " <<sizeRef << endl << endl;
+	find_repeats(refGenome,sizeRef);
 
-	return 0;
+	standrep refRepTable[5][5][5][5][5];
+	
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 5; j++) {
+			for (int k = 0; k < 5; k++) {
+				for (int l = 0; l < 5; l++) {
+					for (int m = 0; m < 5; m++) {
+						for(unsigned int n = 0; n < refRepTable[i][j][k][l][m].size(); n++)
+						{
+							delete &(refRepTable[i][j][k][l][m][n]);
+							refRepTable[i][j][k][l][m].erase(refRepTable[i][j][k][l][m].begin()+1);
+						}
+					}
+				}
+			}
+		}
+	}
+
 }
