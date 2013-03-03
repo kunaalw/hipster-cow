@@ -13,7 +13,7 @@
 
 #define REF_GENOME_IN "ref_genome.txt" // Path of file with the reference genome
 #define READ_TARGET "read_target.txt" // Path of file with the reads
-#define NUM_CHROM_TIMES_TWO 1200 // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
+#define NUM_CHROM_TIMES_TWO 8000000000 // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 
 using namespace std;
@@ -39,7 +39,6 @@ int input_ref_genome (genome & reference_genome) {
 
     size_t n = 0;
     char c;
-
     if (file == NULL)
         return -1; //could not open file
 
@@ -102,8 +101,10 @@ char decode (int pre, int post) {
 	else cerr << "Illegal character" << endl;
 }
 
-int find_repeats_thread_fun_num_lim (genome & reference_genome, int first, int last, int n) {
+int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int last, int n) {
 
+	ofstream outdata; //////////////////////////////////////////
+	outdata.open("bleh.txt");
 	int lengthCount = 0;
 	int numRepeat = 0;
 	char lastStringMatch[5]={'Z','Z','Z','Z','Z'};
@@ -113,10 +114,10 @@ int find_repeats_thread_fun_num_lim (genome & reference_genome, int first, int l
 			int countCharMatch = 0;
 			char stringMatch[5]={'Z','Z','Z','Z','Z'};
 			for (int j = 0; j < (2*n); j+=2) {
-				int first = reference_genome[i+j];
-				int last = reference_genome[i+j+1];
-				int firstPre = reference_genome[i+j-(2*n)];
-				int lastPre = reference_genome[i+j-(2*n)+1];
+				int first = (*reference_genome)[i+j];
+				int last = (*reference_genome)[i+j+1];
+				int firstPre = (*reference_genome)[i+j-(2*n)];
+				int lastPre = (*reference_genome)[i+j-(2*n)+1];
 				
 				char x = decode (first, last);
 				char xPre = decode (firstPre, lastPre);
@@ -135,27 +136,28 @@ int find_repeats_thread_fun_num_lim (genome & reference_genome, int first, int l
 				}
 				else {
 					if ((numRepeat !=0) && (j == (2*n-2))) {
-						cout << "Match at position " << ((i/2)-(n*(numRepeat+1))) << " of length " << n;
-						cout << " with sequence ";
+						outdata << "Match at position " << ((i/2)-(n*(numRepeat+1))) << " of length " << n;
+						outdata << " with sequence ";
 						int r = 0;
 						while ((r < 5) && (lastStringMatch[r] != 'Z')) {
-							cout << lastStringMatch[r];
+							outdata << lastStringMatch[r];
 							r++;
 						}
-						cout << " has been repeated " << (numRepeat+1) << " times." << endl;
+						outdata << " has been repeated " << (numRepeat+1) << " times." << endl;
 						numRepeat = 0;
 					}
 				}
 			}
 		}
 	}
+	outdata.close(); //////////////////////////////////////////
 	return 0;
 }
 
 
 
-int find_repeats_thread_fun (genome & reference_genome, int first, int last) {
-
+int find_repeats_thread_fun (genome * reference_genome, int first, int last) {
+					//cout << "here2" << endl; //*******************************************************************************
 	vector<thread *> threadList;
 
 	for (int i = 2; i <= 5 ; ++i)
@@ -173,21 +175,27 @@ int find_repeats_thread_fun (genome & reference_genome, int first, int last) {
 // **What does this function do? (TODO)
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
 //   RETVAL: Fill this in later (TODO)
-int find_repeats (genome & reference_genome, int sizeRef) {
+int find_repeats (genome * reference_genome, int sizeRef) {
+	cout << "gets here 1234" << endl;
+
 	vector<thread *> threadList;
 	int sizeThreadGenome = ceil(sizeRef/NUM_THREADS);
 	int lastInThread = -1;
 	int firstInThread = -1;
 
 	for (int i = 0; i < NUM_THREADS; ++i) {
+				//cout << "here" << endl; //*******************************************************************************
 		firstInThread = i*sizeThreadGenome;
 		
 		if (i == (NUM_THREADS-1))
 			lastInThread = sizeRef-1;
 		
 		else lastInThread = (i+1)*sizeThreadGenome-1;
-
+		cout << "first in thread: " << firstInThread << endl; //*******************************************************************************
+		cout << "last in thread: " << lastInThread << endl; //*******************************************************************************
+		cout << decode ((*reference_genome)[firstInThread], (*reference_genome)[firstInThread+1]) <<  decode ((*reference_genome)[firstInThread+2], (*reference_genome)[firstInThread+3]) << endl;
 		threadList.push_back(new thread(find_repeats_thread_fun, reference_genome, firstInThread, lastInThread));
+		cout << "yoyo" << endl;
 	}
 	
 	for (int j = 0; j < NUM_THREADS; ++j) {
@@ -227,17 +235,32 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 // **Main function
 int main (int argc, char *argv[]) {
 
+		cout << "gets here 1234" << endl;
 	genome refGenome;
 	int sizeRef = 0;
+		cout << "gets here 1234" << endl;
 	if(!(sizeRef = input_ref_genome(refGenome)))
 		cerr << "Cannot open input file" << endl;
-	
+		cout << "gets here 1234" << endl;
 	vector<string> retReads;
 	input_target_reads (retReads);
 	cout << "Size of genome is: " <<sizeRef << endl << endl;
-	find_repeats(refGenome,sizeRef);
+	find_repeats(&refGenome,sizeRef);
 
 	standrep refRepTable[5][5][5][5][5];
+
+	/*
+	ofstream outdata; // outdata is like cin
+   int j; // loop index
+   //int num[5] = {4, 3, 6, 7, 12}; // list of output values
+  outdata.open("bleh.txt"); // opens the file
+   if( !outdata ) { // file couldn't be opened
+      cerr << "Error: file could not be opened" << endl;
+      exit(1);
+   }
+  for (int i = 0; i < sizeRef; i+=2)
+  outdata << decode(refGenome[i],refGenome[i+1]);
+   outdata.close();*/
 
 }
 
