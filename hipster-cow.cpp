@@ -103,6 +103,7 @@ char decode (int pre, int post) {
 }
 
 int find_repeats_thread_fun_num_lim (genome & reference_genome, int first, int last, int n) {
+
 	int lengthCount = 0;
 	int numRepeat = 0;
 	char lastStringMatch[5]={'Z','Z','Z','Z','Z'};
@@ -118,7 +119,6 @@ int find_repeats_thread_fun_num_lim (genome & reference_genome, int first, int l
 				int lastPre = reference_genome[i+j-(2*n)+1];
 				
 				char x = decode (first, last);
-				if (i < 40) cout << x;
 				char xPre = decode (firstPre, lastPre);
 				
 				if (x == xPre) {
@@ -134,8 +134,8 @@ int find_repeats_thread_fun_num_lim (genome & reference_genome, int first, int l
 					j=(2*n);
 				}
 				else {
-					if ((i < 40) && (numRepeat !=0)) {
-						cout << "Match at position " << ((i/2)-n) << " of length " << n;
+					if ((numRepeat !=0) && (j == (2*n-2))) {
+						cout << "Match at position " << ((i/2)-(n*(numRepeat+1))) << " of length " << n;
 						cout << " with sequence ";
 						int r = 0;
 						while ((r < 5) && (lastStringMatch[r] != 'Z')) {
@@ -240,3 +240,7 @@ int main (int argc, char *argv[]) {
 	standrep refRepTable[5][5][5][5][5];
 
 }
+
+/*
+GAAAGCAGCAGCAGCTCAAATACGGTCATAGTACTCAAACTACTACTACTACTACTACAAAATTATACCATTACGTACGTACGGATCACTAAAGCAAATAACAGATGACTGTAGGTTAGTCAAGATATAAAACAGGCCGAAGACTTGGTTTTGCCCCATAAACAATCAATCCAGTGCTCGCTCGAAACGGAAAGAAAATCAGAGAGGTCGGAAACAGATACAATCGTGGCGGTGGCAGCAGTAGTTAGTTGACGCGGAATGCATCAAGATATATATATATATATATATATATATATATATATATATATATATGGAATAATTTCTTGGCCTCTGCGGCAGCCACTGGCAACCCACATCAAGTTGTTAAGGAAGGTATAACGGTCATCTCCAGTTTCCATGGAGAGGTTAACGCGGTATTTATATGAGTTGGCAGAGGAGGAGGAGGAGTTAATCCCATCCGCAAGTTGAGGGTCACTACTATTGAGCTTATCCAGCACATCTTTCGCGCCTAGCTACGTACGTACGTACGTACGTGTCAACCAC
+*/
