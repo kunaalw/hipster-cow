@@ -90,22 +90,80 @@ int input_target_reads (vector<string>& reads) {
 	return -1;
 }
 
-int find_repeats_thread_fun_num_lim(genome & reference_genome, int first, int last, int n) {
+char decode (int pre, int post) {
+	if (pre == 0 && post == 0)
+		return 'A';
+	else if (pre == 0 && post == 1)
+		return 'C';
+	else if (pre == 1 && post == 0)
+		return 'G';
+	else if (pre == 1 && post == 1)
+		return 'T';
+	else cerr << "Illegal character" << endl;
+}
+
+int find_repeats_thread_fun_num_lim (genome & reference_genome, int first, int last, int n) {
+	int lengthCount = 0;
+	int numRepeat = 0;
+	char lastStringMatch[5]={'Z','Z','Z','Z','Z'};
+	for (int i = first; i < last; i+=2) {
+		if (i < (first + (2*n)));
+		else {
+			int countCharMatch = 0;
+			char stringMatch[5]={'Z','Z','Z','Z','Z'};
+			for (int j = 0; j < (2*n); j+=2) {
+				int first = reference_genome[i+j];
+				int last = reference_genome[i+j+1];
+				int firstPre = reference_genome[i+j-(2*n)];
+				int lastPre = reference_genome[i+j-(2*n)+1];
+				
+				char x = decode (first, last);
+				if (i < 40) cout << x;
+				char xPre = decode (firstPre, lastPre);
+				
+				if (x == xPre) {
+					stringMatch[j/2] = xPre;
+					countCharMatch++;
+				}
+
+				if (countCharMatch == n) {
+					numRepeat++;
+					i+=(2*(n-1));
+					for (int p = 0; p <5; p++)
+						lastStringMatch[p] = stringMatch[p];
+					j=(2*n);
+				}
+				else {
+					if ((i < 40) && (numRepeat !=0)) {
+						cout << "Match at position " << ((i/2)-n) << " of length " << n;
+						cout << " with sequence ";
+						int r = 0;
+						while ((r < 5) && (lastStringMatch[r] != 'Z')) {
+							cout << lastStringMatch[r];
+							r++;
+						}
+						cout << " has been repeated " << (numRepeat+1) << " times." << endl;
+						numRepeat = 0;
+					}
+				}
+			}
+		}
+	}
 	return 0;
 }
 
 
 
-int find_repeats_thread_fun(genome & reference_genome, int first, int last) {
+int find_repeats_thread_fun (genome & reference_genome, int first, int last) {
 
 	vector<thread *> threadList;
 
 	for (int i = 2; i <= 5 ; ++i)
 		threadList.push_back(new thread(find_repeats_thread_fun_num_lim, reference_genome, first, last, i));
 	
-	for (int j = 2; j <= 5; ++j) {
-		//threadList[j]->join();
-		//delete threadList[j];
+	for (int j = 0; j < 4; ++j) {
+		threadList[j]->join();
+		delete threadList[j];
 	}
 
 	return 0;
@@ -139,6 +197,32 @@ int find_repeats (genome & reference_genome, int sizeRef) {
 	return 0;
 }
 
+int outputTable (standrep tableRet[5][5][5][5][5]) {
+
+	cout << "|  Pattern  |" << "|      Start      |" << "|       End       |" << endl;
+
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 5; j++) {
+			for (int k = 0; k < 5; k++) {
+				for (int l = 0; l < 5; l++) {
+					for (int m = 0; m < 5; m++) {
+						if (tableRet[i][j][k][l][m].size() == 0) continue;
+						else {
+							for(unsigned int n = 0; n < tableRet[i][j][k][l][m].size(); n++) {
+								cout << "Pattern: " << tableRet[i][j][k][l][m][n].pattern << "     " << tableRet[i][j][k][l][m][n].startPos << "     " << tableRet[i][j][k][l][m][n].endPos << endl;
+								delete &(tableRet[i][j][k][l][m][n]);
+								tableRet[i][j][k][l][m].erase(tableRet[i][j][k][l][m].begin()+1);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0;
+
+}
+
 
 // **Main function
 int main (int argc, char *argv[]) {
@@ -154,21 +238,5 @@ int main (int argc, char *argv[]) {
 	find_repeats(refGenome,sizeRef);
 
 	standrep refRepTable[5][5][5][5][5];
-	
-	for (int i = 0; i < 5; i++) {
-		for (int j = 0; j < 5; j++) {
-			for (int k = 0; k < 5; k++) {
-				for (int l = 0; l < 5; l++) {
-					for (int m = 0; m < 5; m++) {
-						for(unsigned int n = 0; n < refRepTable[i][j][k][l][m].size(); n++)
-						{
-							delete &(refRepTable[i][j][k][l][m][n]);
-							refRepTable[i][j][k][l][m].erase(refRepTable[i][j][k][l][m].begin()+1);
-						}
-					}
-				}
-			}
-		}
-	}
 
 }
