@@ -11,14 +11,15 @@
 #include <thread>
 #include "reference_STR_tree.h"
 
-#define REF_GENOME_IN "ref_genome.txt" // Path of file with the reference genome
+#define REF_GENOME_IN "ref_genome_full.txt" // Path of file with the reference genome
 #define READ_TARGET "read_target.txt" // Path of file with the reads
-#define NUM_CHROM_TIMES_TWO 8000000000 // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
+#define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 
-using namespace std;
+using namespace std; 
 
 
+//typedef bitset<NUM_CHROM_TIMES_TWO> genome;
 typedef bitset<NUM_CHROM_TIMES_TWO> genome;
 
 typedef struct STRInstance {
@@ -34,30 +35,30 @@ typedef vector<standrepinst> standrep;
 // **Inputs the reference genome into a string
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
 //   RETVAL: integer which returns size of genome when successful, -1 otherwise
-int input_ref_genome (genome & reference_genome) {
+int input_ref_genome (genome * reference_genome) {
 	FILE *file = fopen(REF_GENOME_IN, "r");
-
+	int i = 0;
     size_t n = 0;
     char c;
     if (file == NULL)
         return -1; //could not open file
-
     while ((c = fgetc(file)) != EOF) {
+		i++;
 		if (c == 'A') {
-			reference_genome.set(n++,0);
-			reference_genome.set(n++,0);
+			reference_genome->set(n++,0);
+			reference_genome->set(n++,0);
 		}
 		else if (c == 'C') {
-			reference_genome.set(n++,0);
-			reference_genome.set(n++,1);
+			reference_genome->set(n++,0);
+			reference_genome->set(n++,1);
 		}
 		else if (c == 'G') {
-			reference_genome.set(n++,1);
-			reference_genome.set(n++,0);
+			reference_genome->set(n++,1);
+			reference_genome->set(n++,0);
 		}
 		else if (c == 'T') {
-			reference_genome.set(n++,1);
-			reference_genome.set(n++,1);
+			reference_genome->set(n++,1);
+			reference_genome->set(n++,1);
 		}
 		else {
 			cerr << "There is an error in the input file - invalid character" << endl;
@@ -103,8 +104,9 @@ char decode (int pre, int post) {
 
 int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int last, int n) {
 
-	ofstream outdata; //////////////////////////////////////////
-	outdata.open("bleh.txt");
+	cout << "STATUS: Length-seperate thread formed (n is: " << n << ")" << endl;
+	ofstream outdata;
+	outdata.open("ref_output.txt");
 	int lengthCount = 0;
 	int numRepeat = 0;
 	char lastStringMatch[5]={'Z','Z','Z','Z','Z'};
@@ -157,7 +159,8 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 
 
 int find_repeats_thread_fun (genome * reference_genome, int first, int last) {
-					//cout << "here2" << endl; //*******************************************************************************
+
+	cout << "STATUS: Split thread formed (starts at: " << first << ")" << endl;
 	vector<thread *> threadList;
 
 	for (int i = 2; i <= 5 ; ++i)
@@ -176,7 +179,6 @@ int find_repeats_thread_fun (genome * reference_genome, int first, int last) {
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
 //   RETVAL: Fill this in later (TODO)
 int find_repeats (genome * reference_genome, int sizeRef) {
-	cout << "gets here 1234" << endl;
 
 	vector<thread *> threadList;
 	int sizeThreadGenome = ceil(sizeRef/NUM_THREADS);
@@ -184,18 +186,14 @@ int find_repeats (genome * reference_genome, int sizeRef) {
 	int firstInThread = -1;
 
 	for (int i = 0; i < NUM_THREADS; ++i) {
-				//cout << "here" << endl; //*******************************************************************************
 		firstInThread = i*sizeThreadGenome;
 		
 		if (i == (NUM_THREADS-1))
 			lastInThread = sizeRef-1;
 		
 		else lastInThread = (i+1)*sizeThreadGenome-1;
-		cout << "first in thread: " << firstInThread << endl; //*******************************************************************************
-		cout << "last in thread: " << lastInThread << endl; //*******************************************************************************
 		cout << decode ((*reference_genome)[firstInThread], (*reference_genome)[firstInThread+1]) <<  decode ((*reference_genome)[firstInThread+2], (*reference_genome)[firstInThread+3]) << endl;
 		threadList.push_back(new thread(find_repeats_thread_fun, reference_genome, firstInThread, lastInThread));
-		cout << "yoyo" << endl;
 	}
 	
 	for (int j = 0; j < NUM_THREADS; ++j) {
@@ -235,32 +233,21 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 // **Main function
 int main (int argc, char *argv[]) {
 
-		cout << "gets here 1234" << endl;
-	genome refGenome;
+	genome *refGenome = new genome;
 	int sizeRef = 0;
-		cout << "gets here 1234" << endl;
 	if(!(sizeRef = input_ref_genome(refGenome)))
 		cerr << "Cannot open input file" << endl;
-		cout << "gets here 1234" << endl;
+	cout << "STATUS: Reference genome input complete" << endl;
+
 	vector<string> retReads;
+	cout << "STATUS: Target reads input complete" << endl;
+
 	input_target_reads (retReads);
-	cout << "Size of genome is: " <<sizeRef << endl << endl;
-	find_repeats(&refGenome,sizeRef);
-
+	cout << "INFO: Size of genome is: " <<sizeRef << endl << endl;
+	find_repeats(refGenome,sizeRef);
+	cout << "STATUS: All tasks completed successfully ---" << endl << endl;
 	standrep refRepTable[5][5][5][5][5];
-
-	/*
-	ofstream outdata; // outdata is like cin
-   int j; // loop index
-   //int num[5] = {4, 3, 6, 7, 12}; // list of output values
-  outdata.open("bleh.txt"); // opens the file
-   if( !outdata ) { // file couldn't be opened
-      cerr << "Error: file could not be opened" << endl;
-      exit(1);
-   }
-  for (int i = 0; i < sizeRef; i+=2)
-  outdata << decode(refGenome[i],refGenome[i+1]);
-   outdata.close();*/
+	delete(refGenome);
 
 }
 
