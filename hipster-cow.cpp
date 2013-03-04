@@ -11,10 +11,11 @@
 #include <thread>
 #include "reference_STR_tree.h"
 
-#define REF_GENOME_IN "ref_genome_full.txt" // Path of file with the reference genome
+#define REF_GENOME_IN "ref_genome_sample.txt" // Path of file with the reference genome
 #define READ_TARGET "read_target.txt" // Path of file with the reads
 #define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
+#define REF_OUTPUT "ref_output_sample.txt"
 
 using namespace std; 
 
@@ -24,7 +25,7 @@ typedef bitset<NUM_CHROM_TIMES_TWO> genome;
 
 typedef struct STRInstance {
     int startPos;
-	int endPos;
+	int numTimesRep;
 	string pattern;
 	int lengthPattern;
 } standrepinst;
@@ -102,11 +103,11 @@ char decode (int pre, int post) {
 	else cerr << "Illegal character" << endl;
 }
 
-int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int last, int n) {
+int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int last, int n, standrep tableRet[5][5][5][5][5]) {
 
 	cout << "STATUS: Length-seperate thread formed (n is: " << n << ")" << endl;
 	ofstream outdata;
-	outdata.open("ref_output.txt");
+	//outdata.open(REF_OUTPUT);
 	int lengthCount = 0;
 	int numRepeat = 0;
 	char lastStringMatch[5]={'Z','Z','Z','Z','Z'};
@@ -138,33 +139,53 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 				}
 				else {
 					if ((numRepeat !=0) && (j == (2*n-2))) {
-						outdata << "Match at position " << ((i/2)-(n*(numRepeat+1))) << " of length " << n;
+						int lim[5] = {4,4,4,4,4};
+						int r = 0;		
+						standrepinst newRep;
+						newRep.pattern = "";
+
+						while ((r < 5) && (lastStringMatch[r] != 'Z')) {
+							if (lastStringMatch[r] == 'A') lim[r] = 0;
+							if (lastStringMatch[r] == 'C') lim[r] = 1;
+							if (lastStringMatch[r] == 'G') lim[r] = 2;
+							if (lastStringMatch[r] == 'T') lim[r] = 3;
+							newRep.pattern = newRep.pattern+lastStringMatch[r];
+							r++;
+						}
+
+						newRep.startPos = (i/2)-(n*(numRepeat+1));
+						newRep.lengthPattern = n;
+						newRep.numTimesRep = (numRepeat+1);
+
+						tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].push_back(newRep);
+
+						/*outdata << "Match at position " << ((i/2)-(n*(numRepeat+1))) << " of length " << n;
 						outdata << " with sequence ";
 						int r = 0;
 						while ((r < 5) && (lastStringMatch[r] != 'Z')) {
 							outdata << lastStringMatch[r];
 							r++;
 						}
-						outdata << " has been repeated " << (numRepeat+1) << " times." << endl;
+						outdata << " has been repeated " << (numRepeat+1) << " times." << endl;*/
 						numRepeat = 0;
 					}
 				}
 			}
 		}
 	}
-	outdata.close(); //////////////////////////////////////////
+	//outdata.close(); //////////////////////////////////////////
 	return 0;
 }
 
 
 
-int find_repeats_thread_fun (genome * reference_genome, int first, int last) {
+int find_repeats_thread_fun (genome * reference_genome, int first, int last, standrep tableRet[5][5][5][5][5]) {
 
 	cout << "STATUS: Split thread formed (starts at: " << first << ")" << endl;
 	vector<thread *> threadList;
 
 	for (int i = 2; i <= 5 ; ++i)
-		threadList.push_back(new thread(find_repeats_thread_fun_num_lim, reference_genome, first, last, i));
+		threadList.push_back(new thread(find_repeats_thread_fun_num_lim, reference_genome, first, last, i, tableRet));
 	
 	for (int j = 0; j < 4; ++j) {
 		threadList[j]->join();
@@ -178,7 +199,7 @@ int find_repeats_thread_fun (genome * reference_genome, int first, int last) {
 // **What does this function do? (TODO)
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
 //   RETVAL: Fill this in later (TODO)
-int find_repeats (genome * reference_genome, int sizeRef) {
+int find_repeats (genome * reference_genome, int sizeRef, standrep tableRet[5][5][5][5][5]) {
 
 	vector<thread *> threadList;
 	int sizeThreadGenome = ceil(sizeRef/NUM_THREADS);
@@ -193,7 +214,7 @@ int find_repeats (genome * reference_genome, int sizeRef) {
 		
 		else lastInThread = (i+1)*sizeThreadGenome-1;
 		cout << decode ((*reference_genome)[firstInThread], (*reference_genome)[firstInThread+1]) <<  decode ((*reference_genome)[firstInThread+2], (*reference_genome)[firstInThread+3]) << endl;
-		threadList.push_back(new thread(find_repeats_thread_fun, reference_genome, firstInThread, lastInThread));
+		threadList.push_back(new thread(find_repeats_thread_fun, reference_genome, firstInThread, lastInThread, tableRet));
 	}
 	
 	for (int j = 0; j < NUM_THREADS; ++j) {
@@ -205,7 +226,7 @@ int find_repeats (genome * reference_genome, int sizeRef) {
 
 int outputTable (standrep tableRet[5][5][5][5][5]) {
 
-	cout << "|  Pattern  |" << "|      Start      |" << "|       End       |" << endl;
+	cout << " Pattern ," << "Length, " << " Start ," << " End " << endl;
 
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
@@ -215,9 +236,8 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 						if (tableRet[i][j][k][l][m].size() == 0) continue;
 						else {
 							for(unsigned int n = 0; n < tableRet[i][j][k][l][m].size(); n++) {
-								cout << "Pattern: " << tableRet[i][j][k][l][m][n].pattern << "     " << tableRet[i][j][k][l][m][n].startPos << "     " << tableRet[i][j][k][l][m][n].endPos << endl;
-								delete &(tableRet[i][j][k][l][m][n]);
-								tableRet[i][j][k][l][m].erase(tableRet[i][j][k][l][m].begin()+1);
+								cout << tableRet[i][j][k][l][m][n].pattern << ", " << tableRet[i][j][k][l][m][n].lengthPattern << ", " << tableRet[i][j][k][l][m][n].startPos << ", " << tableRet[i][j][k][l][m][n].numTimesRep << endl;
+								tableRet[i][j][k][l][m].clear();
 							}
 						}
 					}
@@ -244,9 +264,11 @@ int main (int argc, char *argv[]) {
 
 	input_target_reads (retReads);
 	cout << "INFO: Size of genome is: " <<sizeRef << endl << endl;
-	find_repeats(refGenome,sizeRef);
-	cout << "STATUS: All tasks completed successfully ---" << endl << endl;
+	
 	standrep refRepTable[5][5][5][5][5];
+	find_repeats(refGenome,sizeRef, refRepTable);
+	cout << "STATUS: All tasks completed successfully ---" << endl << endl;
+	outputTable(refRepTable);
 	delete(refGenome);
 
 }
