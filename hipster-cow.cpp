@@ -130,6 +130,9 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 					countCharMatch++;
 				}
 
+				int checkFour = 0;
+				if ((n == 4) && (lastStringMatch[0] == lastStringMatch[2]) && (lastStringMatch[1] == lastStringMatch[3])) checkFour=1;
+
 				if (countCharMatch == n) {
 					numRepeat++;
 					i+=(2*(n-1));
@@ -138,6 +141,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 					j=(2*n);
 				}
 				else {
+<<<<<<< HEAD
 					if ((numRepeat !=0) && (j == (2*n-2))) {
 						int lim[5] = {4,4,4,4,4};
 						int r = 0;		
@@ -168,6 +172,30 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 						}
 						outdata << " has been repeated " << (numRepeat+1) << " times." << endl;*/
 						numRepeat = 0;
+=======
+					if (checkFour == 0) {
+						if ((numRepeat !=0) && (j == (2*n-2))) {
+							int lim[5] = {4,4,4,4,4};
+							int r = 0;		
+							standrepinst newRep;
+							newRep.pattern = "";
+
+							while ((r < 5) && (lastStringMatch[r] != 'Z')) {
+								if (lastStringMatch[r] == 'A') lim[r] = 0;
+								if (lastStringMatch[r] == 'C') lim[r] = 1;
+								if (lastStringMatch[r] == 'G') lim[r] = 2;
+								if (lastStringMatch[r] == 'T') lim[r] = 3;
+								newRep.pattern = newRep.pattern+lastStringMatch[r];
+								r++;
+							}
+
+							newRep.startPos = (i/2)-(n*(numRepeat+1));
+							newRep.lengthPattern = n;
+							newRep.numTimesRep = (numRepeat+1);
+							tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].push_back(newRep);
+							numRepeat = 0;
+						}
+>>>>>>> ATAT 4 or 2 done = REF COMPLETE
 					}
 				}
 			}
@@ -226,14 +254,18 @@ int find_repeats (genome * reference_genome, int sizeRef, standrep tableRet[5][5
 
 int outputTable (standrep tableRet[5][5][5][5][5]) {
 
+<<<<<<< HEAD
 	cout << " Pattern ," << "Length, " << " Start ," << " End " << endl;
+=======
+	cout << "Pattern," << "Length," << "Start," << "End" << endl;
+>>>>>>> ATAT 4 or 2 done = REF COMPLETE
 
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
 			for (int k = 0; k < 5; k++) {
 				for (int l = 0; l < 5; l++) {
 					for (int m = 0; m < 5; m++) {
-						if (tableRet[i][j][k][l][m].size() == 0) continue;
+						if (tableRet[i][j][k][l][m].size() == 0);
 						else {
 							for(unsigned int n = 0; n < tableRet[i][j][k][l][m].size(); n++) {
 								cout << tableRet[i][j][k][l][m][n].pattern << ", " << tableRet[i][j][k][l][m][n].lengthPattern << ", " << tableRet[i][j][k][l][m][n].startPos << ", " << tableRet[i][j][k][l][m][n].numTimesRep << endl;
