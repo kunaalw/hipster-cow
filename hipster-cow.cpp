@@ -9,13 +9,16 @@
 #include <bitset>
 #include <stdio.h>
 #include <thread>
+#include <mutex>
+#include <functional>
+#include <chrono>
 #include "reference_STR_tree.h"
 
-#define REF_GENOME_IN "ref_genome_sample.txt" // Path of file with the reference genome
+#define REF_GENOME_IN "gen_wip.txt" // Path of file with the reference genome
 #define READ_TARGET "read_target.txt" // Path of file with the reads
 #define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
-#define REF_OUTPUT "ref_output_sample.txt"
+#define REF_OUTPUT "ref_output_wip.txt"
 
 using namespace std; 
 
@@ -31,6 +34,8 @@ typedef struct STRInstance {
 } standrepinst;
 
 typedef vector<standrepinst> standrep;
+
+mutex vecSync;
 
 
 // **Inputs the reference genome into a string
@@ -159,7 +164,11 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 						newRep.lengthPattern = n;
 						newRep.numTimesRep = (numRepeat+1);
 
+						int i = tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size();
+						
+						vecSync.lock();
 						tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].push_back(newRep);
+						vecSync.unlock();
 						numRepeat = 0;
 					}
 
@@ -190,7 +199,6 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 			}
 		}
 	}
-	//outdata.close(); //////////////////////////////////////////
 	return 0;
 }
 
@@ -247,7 +255,7 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 	cout << " Pattern ," << "Length, " << " Start ," << " End " << endl;
 
 	cout << "Pattern," << "Length," << "Start," << "End" << endl;
-
+	cout << "SIZE IS: " << tableRet[2][2][4][4][4].size() << endl;
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
 			for (int k = 0; k < 5; k++) {
@@ -255,10 +263,9 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 					for (int m = 0; m < 5; m++) {
 						if (tableRet[i][j][k][l][m].size() == 0);
 						else {
-							for(unsigned int n = 0; n < tableRet[i][j][k][l][m].size(); n++) {
+							for(int n = 0; n < tableRet[i][j][k][l][m].size(); n++)
 								cout << tableRet[i][j][k][l][m][n].pattern << ", " << tableRet[i][j][k][l][m][n].lengthPattern << ", " << tableRet[i][j][k][l][m][n].startPos << ", " << tableRet[i][j][k][l][m][n].numTimesRep << endl;
-								tableRet[i][j][k][l][m].clear();
-							}
+							tableRet[i][j][k][l][m].clear();
 						}
 					}
 				}
