@@ -104,7 +104,6 @@ char decode (int pre, int post) {
 }
 
 int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int last, int n, standrep tableRet[5][5][5][5][5]) {
-
 	cout << "STATUS: Length-seperate thread formed (n is: " << n << ")" << endl;
 	ofstream outdata;
 	//outdata.open(REF_OUTPUT);
@@ -141,7 +140,6 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 					j=(2*n);
 				}
 				else {
-<<<<<<< HEAD
 					if ((numRepeat !=0) && (j == (2*n-2))) {
 						int lim[5] = {4,4,4,4,4};
 						int r = 0;		
@@ -162,17 +160,9 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 						newRep.numTimesRep = (numRepeat+1);
 
 						tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].push_back(newRep);
-
-						/*outdata << "Match at position " << ((i/2)-(n*(numRepeat+1))) << " of length " << n;
-						outdata << " with sequence ";
-						int r = 0;
-						while ((r < 5) && (lastStringMatch[r] != 'Z')) {
-							outdata << lastStringMatch[r];
-							r++;
-						}
-						outdata << " has been repeated " << (numRepeat+1) << " times." << endl;*/
 						numRepeat = 0;
-=======
+					}
+
 					if (checkFour == 0) {
 						if ((numRepeat !=0) && (j == (2*n-2))) {
 							int lim[5] = {4,4,4,4,4};
@@ -195,7 +185,6 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 							tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].push_back(newRep);
 							numRepeat = 0;
 						}
->>>>>>> ATAT 4 or 2 done = REF COMPLETE
 					}
 				}
 			}
@@ -254,11 +243,10 @@ int find_repeats (genome * reference_genome, int sizeRef, standrep tableRet[5][5
 
 int outputTable (standrep tableRet[5][5][5][5][5]) {
 
-<<<<<<< HEAD
+
 	cout << " Pattern ," << "Length, " << " Start ," << " End " << endl;
-=======
+
 	cout << "Pattern," << "Length," << "Start," << "End" << endl;
->>>>>>> ATAT 4 or 2 done = REF COMPLETE
 
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
