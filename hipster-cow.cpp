@@ -19,9 +19,9 @@
 #define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 #define REF_OUTPUT "ref_output_wip.txt"
+#define MIN_REP 3
 
 using namespace std; 
-
 
 //typedef bitset<NUM_CHROM_TIMES_TWO> genome;
 typedef bitset<NUM_CHROM_TIMES_TWO> genome;
@@ -145,7 +145,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 					j=(2*n);
 				}
 				else {
-					if ((numRepeat !=0) && (j == (2*n-2))) {
+					if ((numRepeat >= MIN_REP) && (j == (2*n-2))) {
 						int lim[5] = {4,4,4,4,4};
 						int r = 0;		
 						standrepinst newRep;
@@ -171,6 +171,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 						vecSync.unlock();
 						numRepeat = 0;
 					}
+					else if ((numRepeat !=0) && (j == (2*n-2))) numRepeat = 0;
 
 					if (checkFour == 0) {
 						if ((numRepeat !=0) && (j == (2*n-2))) {
