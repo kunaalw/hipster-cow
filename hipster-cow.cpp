@@ -19,7 +19,7 @@
 #define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 #define REF_OUTPUT "ref_output_wip.txt"
-#define MIN_REP 3
+#define MIN_REP 5
 
 using namespace std; 
 
@@ -27,7 +27,7 @@ using namespace std;
 typedef bitset<NUM_CHROM_TIMES_TWO> genome;
 
 typedef struct STRInstance {
-    int startPos;
+    __int64 startPos;
 	int numTimesRep;
 	string pattern;
 	int lengthPattern;
@@ -108,10 +108,9 @@ char decode (int pre, int post) {
 	else cerr << "Illegal character" << endl;
 }
 
-int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int last, int n, standrep tableRet[5][5][5][5][5]) {
+int find_repeats_thread_fun_num_lim (genome * reference_genome, __int64 first, __int64 last, int n, standrep tableRet[5][5][5][5][5]) {
 	cout << "STATUS: Length-seperate thread formed (n is: " << n << ")" << endl;
 	ofstream outdata;
-	//outdata.open(REF_OUTPUT);
 	int lengthCount = 0;
 	int numRepeat = 0;
 	char lastStringMatch[5]={'Z','Z','Z','Z','Z'};
@@ -134,8 +133,13 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 					countCharMatch++;
 				}
 
-				int checkFour = 0;
-				if ((n == 4) && (lastStringMatch[0] == lastStringMatch[2]) && (lastStringMatch[1] == lastStringMatch[3])) checkFour=1;
+				int checkRepFlag = 0;
+				if (((n == 4) && (lastStringMatch[0] == lastStringMatch[2]) && (lastStringMatch[1] == lastStringMatch[3]))
+					|| ((n == 3) && (lastStringMatch[0] == lastStringMatch[1]) && (lastStringMatch[0] == lastStringMatch[2]))
+					  || ((n== 5) && (lastStringMatch[0] == lastStringMatch[1]) || (lastStringMatch[0] == lastStringMatch[2]) 
+					    || (lastStringMatch[0] == lastStringMatch[3]) || (lastStringMatch[0] == lastStringMatch[4]))) {
+					checkRepFlag=1;
+				}
 
 				if (countCharMatch == n) {
 					numRepeat++;
@@ -145,7 +149,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 					j=(2*n);
 				}
 				else {
-					if ((numRepeat >= MIN_REP) && (j == (2*n-2))) {
+					if ((numRepeat >= (MIN_REP-1)) && (j == (2*n-2))) {
 						int lim[5] = {4,4,4,4,4};
 						int r = 0;		
 						standrepinst newRep;
@@ -173,7 +177,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 					}
 					else if ((numRepeat !=0) && (j == (2*n-2))) numRepeat = 0;
 
-					if (checkFour == 0) {
+					if (checkRepFlag == 0) {
 						if ((numRepeat !=0) && (j == (2*n-2))) {
 							int lim[5] = {4,4,4,4,4};
 							int r = 0;		
@@ -196,6 +200,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 							numRepeat = 0;
 						}
 					}
+					else numRepeat = 0;
 				}
 			}
 		}
@@ -205,7 +210,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, int first, int l
 
 
 
-int find_repeats_thread_fun (genome * reference_genome, int first, int last, standrep tableRet[5][5][5][5][5]) {
+int find_repeats_thread_fun (genome * reference_genome, __int64 first, __int64 last, standrep tableRet[5][5][5][5][5]) {
 
 	cout << "STATUS: Split thread formed (starts at: " << first << ")" << endl;
 	vector<thread *> threadList;
@@ -225,12 +230,12 @@ int find_repeats_thread_fun (genome * reference_genome, int first, int last, sta
 // **What does this function do? (TODO)
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
 //   RETVAL: Fill this in later (TODO)
-int find_repeats (genome * reference_genome, int sizeRef, standrep tableRet[5][5][5][5][5]) {
+int find_repeats (genome * reference_genome, __int64 sizeRef, standrep tableRet[5][5][5][5][5]) {
 
 	vector<thread *> threadList;
-	int sizeThreadGenome = ceil(sizeRef/NUM_THREADS);
-	int lastInThread = -1;
-	int firstInThread = -1;
+	__int64 sizeThreadGenome = ceil(sizeRef/NUM_THREADS);
+	__int64 lastInThread = -1;
+	__int64 firstInThread = -1;
 
 	for (int i = 0; i < NUM_THREADS; ++i) {
 		firstInThread = i*sizeThreadGenome;
@@ -252,11 +257,7 @@ int find_repeats (genome * reference_genome, int sizeRef, standrep tableRet[5][5
 
 int outputTable (standrep tableRet[5][5][5][5][5]) {
 
-
-	cout << " Pattern ," << "Length, " << " Start ," << " End " << endl;
-
-	cout << "Pattern," << "Length," << "Start," << "End" << endl;
-	cout << "SIZE IS: " << tableRet[2][2][4][4][4].size() << endl;
+	cout << "\n\nPattern, " << "Length, " << "Start, " << "End \n" << endl;
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
 			for (int k = 0; k < 5; k++) {
@@ -264,7 +265,7 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 					for (int m = 0; m < 5; m++) {
 						if (tableRet[i][j][k][l][m].size() == 0);
 						else {
-							for(int n = 0; n < tableRet[i][j][k][l][m].size(); n++)
+							for(__int64 n = 0; n < tableRet[i][j][k][l][m].size(); n++)
 								cout << tableRet[i][j][k][l][m][n].pattern << ", " << tableRet[i][j][k][l][m][n].lengthPattern << ", " << tableRet[i][j][k][l][m][n].startPos << ", " << tableRet[i][j][k][l][m][n].numTimesRep << endl;
 							tableRet[i][j][k][l][m].clear();
 						}
