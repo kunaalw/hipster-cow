@@ -41,9 +41,9 @@ mutex vecSync;
 // **Inputs the reference genome into a string
 //   PARAM:  Genome type (i.e. bitset of size of genome) passed by reference (returned)
 //   RETVAL: integer which returns size of genome when successful, -1 otherwise
-int input_ref_genome (genome * reference_genome) {
+__int64 input_ref_genome (genome * reference_genome) {
 	FILE *file = fopen(REF_GENOME_IN, "r");
-	int i = 0;
+	__int64 i = 0;
     size_t n = 0;
     char c;
     if (file == NULL)
@@ -71,7 +71,7 @@ int input_ref_genome (genome * reference_genome) {
 			return -1;
 		}
     }
-	return n;
+	return i;
 }
 
 
@@ -114,8 +114,8 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, __int64 first, _
 	int lengthCount = 0;
 	int numRepeat = 0;
 	char lastStringMatch[5]={'Z','Z','Z','Z','Z'};
-	for (int i = first; i < last; i+=2) {
-		if (i < (first + (2*n)));
+	for (__int64 i = (2*first); i < (2*last); i+=2) {
+		if (i < ((2*first) + (2*n)));
 		else {
 			int countCharMatch = 0;
 			char stringMatch[5]={'Z','Z','Z','Z','Z'};
@@ -168,7 +168,7 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, __int64 first, _
 						newRep.lengthPattern = n;
 						newRep.numTimesRep = (numRepeat+1);
 
-						int i = tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size();
+						__int64 i = tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size();
 						
 						vecSync.lock();
 						tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].push_back(newRep);
@@ -283,7 +283,7 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 int main (int argc, char *argv[]) {
 
 	genome *refGenome = new genome;
-	int sizeRef = 0;
+	__int64 sizeRef = 0;
 	if(!(sizeRef = input_ref_genome(refGenome)))
 		cerr << "Cannot open input file" << endl;
 	cout << "STATUS: Reference genome input complete" << endl;
