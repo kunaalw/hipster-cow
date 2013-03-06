@@ -15,11 +15,13 @@
 #include "reference_STR_tree.h"
 
 #define REF_GENOME_IN "gen_wip.txt" // Path of file with the reference genome
-#define READ_TARGET "read_target.txt" // Path of file with the reads
+#define READ_TARGET "reads_wip.txt" // Path of file with the reads
 #define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 #define REF_OUTPUT "ref_output_wip.txt"
 #define MIN_REP 5
+#define MIN_READ_REP 4
+#define READ_LENGTH 30
 
 using namespace std; 
 
@@ -31,11 +33,14 @@ typedef struct STRInstance {
 	int numTimesRep;
 	string pattern;
 	int lengthPattern;
+	int numTimesRepTarget;
+	int status;
 } standrepinst;
 
 typedef vector<standrepinst> standrep;
 
 mutex vecSync;
+mutex endSync;
 
 
 // **Inputs the reference genome into a string
@@ -72,28 +77,6 @@ __int64 input_ref_genome (genome * reference_genome) {
 		}
     }
 	return i;
-}
-
-
-// **Inputs the target reads into a string vector
-//   PARAM:  string vector passed by reference (returned with reads)
-//   RETVAL: number of reads (i.e. size of vector reads)
-int input_target_reads (vector<string>& reads) {
-	int numReads = 0;
-	string line;
-	ifstream myfile (READ_TARGET);
-	if (myfile.is_open())
-	{
-		while ( myfile.good())
-		{
-			getline (myfile, line);
-			reads.push_back(line);
-			numReads++;
-		}
-		myfile.close();
-		return numReads;
-	}
-	return -1;
 }
 
 char decode (int pre, int post) {
@@ -167,6 +150,8 @@ int find_repeats_thread_fun_num_lim (genome * reference_genome, __int64 first, _
 						newRep.startPos = (i/2)-(n*(numRepeat+1));
 						newRep.lengthPattern = n;
 						newRep.numTimesRep = (numRepeat+1);
+						newRep.numTimesRepTarget = 0;
+						newRep.status = 0;
 
 						__int64 i = tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size();
 						
@@ -278,6 +263,86 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 
 }
 
+//READS FUNCTIONS
+
+int find_repeat_single_read_num_lim(string line, int n, standrep tableRet[5][5][5][5][5]) {
+	int lengthCount = 0;
+	int numRepeat = 0;
+	for (int i = 0; i <= READ_LENGTH-n; i++) {
+		if (i < n);
+		else {
+			int countCharMatch = 0;
+			for (int j = 0; j < n; j++) {
+				if (line[i+j] == line[i+j-n])
+					countCharMatch++;
+
+				if (countCharMatch == n) {
+					numRepeat++;
+					i+=(n-1);
+					//for (int p = 0; p <5; p++)
+						//lastStringMatch[p] = stringMatch[p];
+					j=n;
+				}
+				else if ((numRepeat >= (MIN_READ_REP-1)) && (j == (n-1))) {
+					endSync.lock();
+					cout << "The pattern ";
+					for (int k = 0; k < n; k++)
+						cout << line[i-n+k];
+					cout << " has been repeated " << numRepeat+1 << " times in line " << line << endl;
+					numRepeat = 0;
+					endSync.unlock();
+				}
+				else if ((numRepeat != 0) && (j == (n-1))) {
+					numRepeat = 0;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+
+
+int find_repeats_single_read(string line, standrep tableRet[5][5][5][5][5]) {
+	vector<thread *> threadList;
+
+	for (int i = 2; i <= 5 ; ++i)
+		threadList.push_back(new thread(find_repeat_single_read_num_lim, line, i, tableRet));
+	
+	for (int j = 0; j < 4; ++j) {
+		threadList[j]->join();
+		delete threadList[j];
+	}
+	return 0;
+}
+
+// **Inputs the target reads into a string vector
+//   PARAM:  string vector passed by reference (returned with reads)
+//   RETVAL: number of reads (i.e. size of vector reads)
+int input_target_reads (standrep tableRet[5][5][5][5][5]) {
+	string line[NUM_THREADS];
+	__int64 counter = 0;
+	ifstream myfile (READ_TARGET);
+	if (myfile.is_open()) {
+		while ( myfile.good()) {
+			vector<thread *> threadList;
+			for (int i = 0; i < NUM_THREADS; i++) {
+				getline(myfile, line[i], '\n');
+				threadList.push_back(new thread(find_repeats_single_read, line[i], tableRet));
+				counter +=10;
+				if (counter%10000 == 0) cout << "STATUS: Processed line #" << counter << endl;
+			}
+
+			for (int j = 0; j < NUM_THREADS; j++) {
+				threadList[j]->join();
+				delete threadList[j];
+			}
+		}
+		myfile.close();
+	}
+	return -1;
+}
+
 
 // **Main function
 int main (int argc, char *argv[]) {
@@ -291,11 +356,13 @@ int main (int argc, char *argv[]) {
 	vector<string> retReads;
 	cout << "STATUS: Target reads input complete" << endl;
 
-	input_target_reads (retReads);
 	cout << "INFO: Size of genome is: " <<sizeRef << endl << endl;
 	
 	standrep refRepTable[5][5][5][5][5];
 	find_repeats(refGenome,sizeRef, refRepTable);
+	cout << "STATUS: All STRs in Reference located" << endl;
+	input_target_reads (refRepTable);
+
 	cout << "STATUS: All tasks completed successfully ---" << endl << endl;
 	outputTable(refRepTable);
 	delete(refGenome);
