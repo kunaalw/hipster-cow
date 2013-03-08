@@ -19,8 +19,8 @@
 #define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 #define REF_OUTPUT "ref_output_wip.txt"
-#define MIN_REP 5
-#define MIN_READ_REP 5
+#define MIN_REP 4
+#define MIN_READ_REP 4
 #define READ_LENGTH 30
 
 using namespace std; 
@@ -265,7 +265,75 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 
 //READS FUNCTIONS
 
-int find_repeats_in_ref (int num, int i, standrep tableRet[5][5][5][5][5]) {
+
+/*
+ __int64 startPos;
+	int numTimesRep;
+	string pattern;
+	int lengthPattern;
+	int numTimesRepTarget;
+	int status;
+*/
+
+int map_read_to_ref (string pattern, string line, int lengthRepeat, int numTimes, int targetStartPos, standrep tableRet[5][5][5][5][5], genome * reference_genome, __int64 sizeRef) {
+	int lim[5] = {4,4,4,4,4};
+	for (int i = 0; i < lengthRepeat; i++) {
+		if (line[i] == 'A') lim[i] = 0;
+		if (line[i] == 'C') lim[i] = 1;
+		if (line[i] == 'G') lim[i] = 2;
+		if (line[i] == 'T') lim[i] = 3;
+	}
+	
+	vector<double> significance;
+	__int64 tempVar =  tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size();
+	for (int j = 0; j < tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size(); j++) {
+		__int64 refStartPos = tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]][j].startPos;
+		int refNumRepeat =  tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]][j].numTimesRep;
+
+		int totCounter = 0;
+		int matchCounter = 0;
+		
+		// Pre
+		for (int k = 0; k < targetStartPos; k++) {
+			if ((refStartPos-1-k) < 0) continue;
+			else {
+				totCounter++;
+				char fromRef = decode((*reference_genome)[2*(refStartPos-1-k)], (*reference_genome)[(2*(refStartPos-1-k))+1]);
+				char fromTar = line[targetStartPos-1-k];
+				if (fromRef == fromTar) matchCounter++;
+			}
+		}
+
+		// Post
+		int postStartPos = targetStartPos + (lengthRepeat*numTimes);
+		int postStartRef = (refStartPos+(lengthRepeat*refNumRepeat));
+		int postNum = READ_LENGTH-postStartPos;
+		for (int l = 0; l < postNum; l++) {
+			if (postStartRef >= (sizeRef*2)) continue;
+			else {
+				totCounter++;
+				char fromRef = decode((*reference_genome)[2*(postStartRef+l)], (*reference_genome)[(2*(postStartRef+l))+1]);
+				char fromTar = line[postStartPos+l];
+				if (fromRef == fromTar) matchCounter++;
+			}
+		}
+
+		if (totCounter == 0) significance.push_back(0);
+		else significance.push_back((matchCounter/totCounter));
+	}
+	
+	double bestMatchSig = -1;
+	int bestMatchIndex = -1;
+	for (int m = 0; m < tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size(); m++)
+		if (significance[m] >= bestMatchSig) bestMatchIndex = m;
+
+	if (bestMatchIndex == -1);// cout << "ERROR: No instance of repeat exists in reference" << endl;
+	else cout << "Best Match for read " << line << " starts at " << tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]][bestMatchIndex].startPos << endl;
+	return 0;
+
+}
+
+int find_repeats_in_ref (int num, int i, standrep tableRet[5][5][5][5][5], genome * reference_genome, __int64 sizeRef) {
 	
 	string fileName = "temp_out_" + to_string(num) + ".txt";
 	ifstream myfile (fileName);
@@ -279,12 +347,15 @@ int find_repeats_in_ref (int num, int i, standrep tableRet[5][5][5][5][5]) {
 			for (int j = 0; j < READ_LENGTH; j++) {
 				if (j >= READ_LENGTH-i+1) {
 					if (numRepeat >= (MIN_READ_REP-1)) {
-						vecSync.lock();
+						string pattern = "";
+						for (int pi = 0; pi < i; pi++) pattern = pattern + line[j-i+pi];
+						/*vecSync.lock();
 						cout << "Match at line " << line << " and the pattern is ";
 						for (int pi = 0; pi < i; pi++) cout << line[j-i+pi];
 						cout << " which is repeated " << (numRepeat+1) << " times" << endl;
-						vecSync.unlock();
+						vecSync.unlock();*/
 						numRepeat = 0;
+						map_read_to_ref(pattern, line, i, (numRepeat + 1), (j-((numRepeat + 1)*i)), tableRet, reference_genome, sizeRef);
 					}
 				}
 				else {
@@ -308,12 +379,13 @@ int find_repeats_in_ref (int num, int i, standrep tableRet[5][5][5][5][5]) {
 
 							else {
 								if ((numRepeat >= (MIN_READ_REP-1)) && (k == i-1)) {
-									vecSync.lock();
-									cout << "Match at line " << line << " and the pattern is ";
-									for (int pi = 0; pi < i; pi++) cout << line[j-i+pi];
-									cout << " which is repeated " << (numRepeat+1) << " times" << endl;
-									vecSync.unlock();
+									string pattern = "";
+									for (int pi = 0; pi < i; pi++) pattern = pattern + line[j-i+pi];
+									/*vecSync.lock();
+									cout << "Match at line " << line << " and the pattern is " << pattern << " which is repeated " << (numRepeat+1) << " times" << endl;
+									vecSync.unlock();*/
 									numRepeat = 0;
+									map_read_to_ref(pattern, line, i, (numRepeat + 1), (j-((numRepeat + 1)*i)), tableRet, reference_genome, sizeRef);
 								}
 								if ( k== (i-1)) numRepeat = 0;
 							}
@@ -329,13 +401,13 @@ int find_repeats_in_ref (int num, int i, standrep tableRet[5][5][5][5][5]) {
 // **Inputs the target reads into a string vector
 //   PARAM:  string vector passed by reference (returned with reads)
 //   RETVAL: number of reads (i.e. size of vector reads)
-int input_target_reads (standrep tableRet[5][5][5][5][5], int num) {
+int input_target_reads (standrep tableRet[5][5][5][5][5], int num, genome * reference_genome, __int64 sizeRef) {
 
 	cout << "STATUS: Split read buffer thread formed (#" << num << ")" << endl;
 	vector<thread *> threadList;
 
 	for (int i = 2; i <= 5 ; ++i)
-		threadList.push_back(new thread(find_repeats_in_ref, num, i, tableRet));
+		threadList.push_back(new thread(find_repeats_in_ref, num, i, tableRet, reference_genome, sizeRef));
 	
 	for (int j = 0; j < 4; ++j) {
 		threadList[j]->join();
@@ -376,6 +448,15 @@ int break_up_file() {
 	return 0;
 }
 
+int deletefiles() {
+	for (int k = 0; k < NUM_THREADS; k++) {
+		string num = to_string(k);
+		string fileName = "temp_out_" + to_string(k) + ".txt";
+		const char * fileNameChar = fileName.c_str ();
+		remove(fileNameChar);
+	}
+	return 0;
+}
 
 // **Main function
 int main (int argc, char *argv[]) {
@@ -401,7 +482,7 @@ int main (int argc, char *argv[]) {
 
 	vector<thread *> threadList;
 	for (int i = 0; i < NUM_THREADS; i++) {
-		threadList.push_back(new thread(input_target_reads, refRepTable, i));
+		threadList.push_back(new thread(input_target_reads, refRepTable, i, refGenome, sizeRef));
 	}
 
 	for (int j = 0; j < NUM_THREADS; j++) {
@@ -413,6 +494,7 @@ int main (int argc, char *argv[]) {
 	cout << "STATUS: All tasks completed successfully ---" << endl << endl;
 	outputTable(refRepTable);
 	delete(refGenome);
+	deletefiles();
 
 }
 
