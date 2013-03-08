@@ -20,7 +20,7 @@
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 #define REF_OUTPUT "ref_output_wip.txt"
 #define MIN_REP 5
-#define MIN_READ_REP 4
+#define MIN_READ_REP 5
 #define READ_LENGTH 30
 
 using namespace std; 
@@ -265,53 +265,63 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 
 //READS FUNCTIONS
 
-int find_repeat_single_read_num_lim(string line, int n, standrep tableRet[5][5][5][5][5]) {
-	int lengthCount = 0;
-	int numRepeat = 0;
-	for (int i = 0; i <= READ_LENGTH-n; i++) {
-		if (i < n);
-		else {
-			int countCharMatch = 0;
-			for (int j = 0; j < n; j++) {
-				if (line[i+j] == line[i+j-n])
-					countCharMatch++;
+int find_repeats_in_ref (int num, int i, standrep tableRet[5][5][5][5][5]) {
+	
+	string fileName = "temp_out_" + to_string(num) + ".txt";
+	ifstream myfile (fileName);
+	if (myfile.is_open()) {
+		string line = "";
+		while ( myfile.good()) {
+			getline(myfile, line, '\n');
+			if (line == "") continue;
+			int lengthCount = 0;
+			int numRepeat = 0;
+			for (int j = 0; j < READ_LENGTH; j++) {
+				if (j >= READ_LENGTH-i+1) {
+					if (numRepeat >= (MIN_READ_REP-1)) {
+						vecSync.lock();
+						cout << "Match at line " << line << " and the pattern is ";
+						for (int pi = 0; pi < i; pi++) cout << line[j-i+pi];
+						cout << " which is repeated " << (numRepeat+1) << " times" << endl;
+						vecSync.unlock();
+						numRepeat = 0;
+					}
+				}
+				else {
+					if (j < i);
+					else {
+						int countCharMatch = 0;
+						for (int k = 0; k < i; k++) {
+							if (line[j+k] == line[j+k-i])
+								countCharMatch++;
 
-				if (countCharMatch == n) {
-					numRepeat++;
-					i+=(n-1);
-					//for (int p = 0; p <5; p++)
-						//lastStringMatch[p] = stringMatch[p];
-					j=n;
-				}
-				else if ((numRepeat >= (MIN_READ_REP-1)) && (j == (n-1))) {
-					endSync.lock();
-					cout << "The pattern ";
-					for (int k = 0; k < n; k++)
-						cout << line[i-n+k];
-					cout << " has been repeated " << numRepeat+1 << " times in line " << line << endl;
-					numRepeat = 0;
-					endSync.unlock();
-				}
-				else if ((numRepeat != 0) && (j == (n-1))) {
-					numRepeat = 0;
+							if (countCharMatch == i) {
+								if (((i == 4) && (line[j] == line [j+2]) && (line[j+1] == line[j+3]))
+									|| ((i == 3) && (line[j] == line [j+1]) && (line[j] == line[j+2]))
+									|| ((i == 5) && (line[j] == line [j+1]) && (line[j] == line[j+2]) && (line[j] == line[j+3]) && (line[j] == line[j+4]))) numRepeat = 0;
+								else {
+									numRepeat++;
+									j+=(i-1);
+									k=i;
+								}
+							}
+
+							else {
+								if ((numRepeat >= (MIN_READ_REP-1)) && (k == i-1)) {
+									vecSync.lock();
+									cout << "Match at line " << line << " and the pattern is ";
+									for (int pi = 0; pi < i; pi++) cout << line[j-i+pi];
+									cout << " which is repeated " << (numRepeat+1) << " times" << endl;
+									vecSync.unlock();
+									numRepeat = 0;
+								}
+								if ( k== (i-1)) numRepeat = 0;
+							}
+						}
+					}
 				}
 			}
 		}
-	}
-	return 0;
-}
-
-
-
-int find_repeats_single_read(string line, standrep tableRet[5][5][5][5][5]) {
-	vector<thread *> threadList;
-
-	for (int i = 2; i <= 5 ; ++i)
-		threadList.push_back(new thread(find_repeat_single_read_num_lim, line, i, tableRet));
-	
-	for (int j = 0; j < 4; ++j) {
-		threadList[j]->join();
-		delete threadList[j];
 	}
 	return 0;
 }
@@ -319,28 +329,51 @@ int find_repeats_single_read(string line, standrep tableRet[5][5][5][5][5]) {
 // **Inputs the target reads into a string vector
 //   PARAM:  string vector passed by reference (returned with reads)
 //   RETVAL: number of reads (i.e. size of vector reads)
-int input_target_reads (standrep tableRet[5][5][5][5][5]) {
-	string line[NUM_THREADS];
-	__int64 counter = 0;
+int input_target_reads (standrep tableRet[5][5][5][5][5], int num) {
+
+	cout << "STATUS: Split read buffer thread formed (#" << num << ")" << endl;
+	vector<thread *> threadList;
+
+	for (int i = 2; i <= 5 ; ++i)
+		threadList.push_back(new thread(find_repeats_in_ref, num, i, tableRet));
+	
+	for (int j = 0; j < 4; ++j) {
+		threadList[j]->join();
+		delete threadList[j];
+	}
+
+	return 0;
+}
+
+int break_up_file() {
+	string line;
 	ifstream myfile (READ_TARGET);
+	ofstream out[NUM_THREADS];
+	
+	for (int k = 0; k < NUM_THREADS; k++) {
+		string num = to_string(k);
+		string fileName = "temp_out_" + to_string(k) + ".txt";
+		const char * fileNameChar = fileName.c_str ();
+		remove(fileNameChar);
+
+		out[k].open(fileName);
+		out[k].flags(fstream::out | fstream::app);
+	}
+
 	if (myfile.is_open()) {
 		while ( myfile.good()) {
-			vector<thread *> threadList;
 			for (int i = 0; i < NUM_THREADS; i++) {
-				getline(myfile, line[i], '\n');
-				threadList.push_back(new thread(find_repeats_single_read, line[i], tableRet));
-				counter +=10;
-				if (counter%10000 == 0) cout << "STATUS: Processed line #" << counter << endl;
-			}
-
-			for (int j = 0; j < NUM_THREADS; j++) {
-				threadList[j]->join();
-				delete threadList[j];
+				getline(myfile, line, '\n');
+				out[i] << line << '\n';
 			}
 		}
-		myfile.close();
 	}
-	return -1;
+
+	for (int j = 0; j < NUM_THREADS; j++) {
+		out[j].close();
+	}
+	myfile.close();
+	return 0;
 }
 
 
@@ -361,8 +394,22 @@ int main (int argc, char *argv[]) {
 	standrep refRepTable[5][5][5][5][5];
 	find_repeats(refGenome,sizeRef, refRepTable);
 	cout << "STATUS: All STRs in Reference located" << endl;
-	input_target_reads (refRepTable);
 
+	// READS PORTION
+
+	break_up_file();
+
+	vector<thread *> threadList;
+	for (int i = 0; i < NUM_THREADS; i++) {
+		threadList.push_back(new thread(input_target_reads, refRepTable, i));
+	}
+
+	for (int j = 0; j < NUM_THREADS; j++) {
+		threadList[j]->join();
+		delete threadList[j];
+	}
+
+	// END READS
 	cout << "STATUS: All tasks completed successfully ---" << endl << endl;
 	outputTable(refRepTable);
 	delete(refGenome);

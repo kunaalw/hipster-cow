@@ -1,8 +1,8 @@
-﻿Build started 06-03-2013 10:53:58.
+﻿Build started 07-03-2013 17:14:47.
      1>Project "C:\Users\vaio\Documents\GitHub\hipster-cow\hipster-cow.vcxproj" on node 2 (Clean target(s)).
      1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V110\Microsoft.CppClean.targets(75,5): warning : Access to the path 'C:\Users\vaio\Documents\GitHub\hipster-cow\x64\Debug\hipster-cow.exe' is denied.
      1>Done Building Project "C:\Users\vaio\Documents\GitHub\hipster-cow\hipster-cow.vcxproj" (Clean target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:00.25
+Time Elapsed 00:00:00.20
