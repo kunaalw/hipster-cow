@@ -19,11 +19,13 @@
 #define NUM_CHROM_TIMES_TWO 7500000000ul // #chromosomes to be read (x2 for Bitset) [Set larger than expected]
 #define NUM_THREADS 10 // #threads spawned by repeat finder (reference)
 #define REF_OUTPUT "ref_output_wip.txt"
-#define MIN_REP 4
-#define MIN_READ_REP 4
+#define MIN_REP 5
+#define MIN_READ_REP 5
 #define READ_LENGTH 30
 
 using namespace std; 
+
+// All done! (TODO: accept FASTA files directly)
 
 //typedef bitset<NUM_CHROM_TIMES_TWO> genome;
 typedef bitset<NUM_CHROM_TIMES_TWO> genome;
@@ -278,10 +280,10 @@ int outputTable (standrep tableRet[5][5][5][5][5]) {
 int map_read_to_ref (string pattern, string line, int lengthRepeat, int numTimes, int targetStartPos, standrep tableRet[5][5][5][5][5], genome * reference_genome, __int64 sizeRef) {
 	int lim[5] = {4,4,4,4,4};
 	for (int i = 0; i < lengthRepeat; i++) {
-		if (line[i] == 'A') lim[i] = 0;
-		if (line[i] == 'C') lim[i] = 1;
-		if (line[i] == 'G') lim[i] = 2;
-		if (line[i] == 'T') lim[i] = 3;
+		if (pattern[i] == 'A') lim[i] = 0;
+		if (pattern[i] == 'C') lim[i] = 1;
+		if (pattern[i] == 'G') lim[i] = 2;
+		if (pattern[i] == 'T') lim[i] = 3;
 	}
 	
 	vector<double> significance;
@@ -305,30 +307,47 @@ int map_read_to_ref (string pattern, string line, int lengthRepeat, int numTimes
 		}
 
 		// Post
-		int postStartPos = targetStartPos + (lengthRepeat*numTimes);
-		int postStartRef = (refStartPos+(lengthRepeat*refNumRepeat));
+		__int64 postStartPos = targetStartPos + (lengthRepeat*numTimes);
+		__int64 postStartRef = (refStartPos+(lengthRepeat*refNumRepeat));
+		
+		///////////////////////////
+		string temptemp = "";
+		for (int l = -5; l < READ_LENGTH; l++)
+			temptemp = temptemp + decode((*reference_genome)[2*(refStartPos+l)], (*reference_genome)[(2*(refStartPos+l))+1]);
+		////////////////////////////
+		
 		int postNum = READ_LENGTH-postStartPos;
-		for (int l = 0; l < postNum; l++) {
+		for (int l = postStartPos; l < READ_LENGTH; l++) {
 			if (postStartRef >= (sizeRef*2)) continue;
 			else {
 				totCounter++;
-				char fromRef = decode((*reference_genome)[2*(postStartRef+l)], (*reference_genome)[(2*(postStartRef+l))+1]);
-				char fromTar = line[postStartPos+l];
-				if (fromRef == fromTar) matchCounter++;
+				char fromRef = decode((*reference_genome)[2*(postStartRef+l-postStartPos)], (*reference_genome)[(2*(postStartRef+l-postStartPos))+1]);
+				char fromTar = line[l];
+				if (fromRef == fromTar) 
+					matchCounter++;
 			}
 		}
-
-		if (totCounter == 0) significance.push_back(0);
-		else significance.push_back((matchCounter/totCounter));
+		if (totCounter == 0)
+			significance.push_back(0);
+		else {
+			double pushBackVal = (double)matchCounter/(double)totCounter;
+			significance.push_back(pushBackVal);
+		}
 	}
 	
-	double bestMatchSig = -1;
+	double bestMatchSig = 0;
 	int bestMatchIndex = -1;
 	for (int m = 0; m < tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]].size(); m++)
-		if (significance[m] >= bestMatchSig) bestMatchIndex = m;
-
+		if (significance[m] > bestMatchSig) {
+			bestMatchIndex = m;
+			bestMatchSig = significance[m];
+		}
 	if (bestMatchIndex == -1);// cout << "ERROR: No instance of repeat exists in reference" << endl;
-	else cout << "Best Match for read " << line << " starts at " << tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]][bestMatchIndex].startPos << endl;
+	else {
+			vecSync.lock();
+			cout << "Read:  " << line << " @ " << tableRet[lim[0]][lim[1]][lim[2]][lim[3]][lim[4]][bestMatchIndex].startPos << " w/sig " << bestMatchSig << endl;
+			vecSync.unlock();
+	}
 	return 0;
 
 }
@@ -384,8 +403,8 @@ int find_repeats_in_ref (int num, int i, standrep tableRet[5][5][5][5][5], genom
 									/*vecSync.lock();
 									cout << "Match at line " << line << " and the pattern is " << pattern << " which is repeated " << (numRepeat+1) << " times" << endl;
 									vecSync.unlock();*/
-									numRepeat = 0;
 									map_read_to_ref(pattern, line, i, (numRepeat + 1), (j-((numRepeat + 1)*i)), tableRet, reference_genome, sizeRef);
+									numRepeat = 0;
 								}
 								if ( k== (i-1)) numRepeat = 0;
 							}

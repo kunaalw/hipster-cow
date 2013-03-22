@@ -1,8 +1,19 @@
-﻿Build started 07-03-2013 20:07:09.
-     1>Project "C:\Users\vaio\Documents\GitHub\hipster-cow\hipster-cow.vcxproj" on node 2 (Clean target(s)).
-     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V110\Microsoft.CppClean.targets(75,5): warning : Access to the path 'C:\Users\vaio\Documents\GitHub\hipster-cow\x64\Debug\hipster-cow.exe' is denied.
-     1>Done Building Project "C:\Users\vaio\Documents\GitHub\hipster-cow\hipster-cow.vcxproj" (Clean target(s)).
+﻿Build started 3/9/2013 2:53:36 PM.
+     1>Project "C:\Users\Kunaal\Documents\GitHub\hipster-cow\hipster-cow.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /Od /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc110.pdb" /Gd /TP /errorReport:prompt "hipster-cow.cpp"
+         hipster-cow.cpp
+     1>hipster-cow.cpp(221): warning C4244: 'initializing' : conversion from 'double' to '__int64', possible loss of data
+     1>hipster-cow.cpp(253): warning C4018: '<' : signed/unsigned mismatch
+     1>hipster-cow.cpp(317): warning C4244: 'initializing' : conversion from '__int64' to 'int', possible loss of data
+     1>hipster-cow.cpp(318): warning C4244: 'initializing' : conversion from '__int64' to 'int', possible loss of data
+     1>c:\users\kunaal\documents\github\hipster-cow\hipster-cow.cpp(92): warning C4715: 'decode' : not all control paths return a value
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Kunaal\Documents\GitHub\hipster-cow\x64\Debug\hipster-cow.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Kunaal\Documents\GitHub\hipster-cow\x64\Debug\hipster-cow.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Kunaal\Documents\GitHub\hipster-cow\x64\Debug\hipster-cow.lib" /MACHINE:X64 "x64\Debug\hipster-cow.obj"
+         x64\Debug\reference_STR_tree.obj
+         hipster-cow.vcxproj -> C:\Users\Kunaal\Documents\GitHub\hipster-cow\x64\Debug\hipster-cow.exe
+     1>Done Building Project "C:\Users\Kunaal\Documents\GitHub\hipster-cow\hipster-cow.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:00.09
+Time Elapsed 00:00:01.85
